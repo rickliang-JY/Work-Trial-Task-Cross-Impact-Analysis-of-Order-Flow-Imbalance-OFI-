@@ -2,18 +2,18 @@ import pandas as pd
 import numpy as np 
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler
-import warnings
-warnings.filterwarnings("ignore")
+
 class OFI_implement:
     def __init__(self, level: int, freq: str):
         self.level = level
         self.freq = freq
     def ofi_implement(data: pd.DataFrame, level: int, freq: str):
         ## compute OFI
-        ask_sz = ['ask_sz_01', 'ask_sz_02', 'ask_sz_03', 'ask_sz_04', 'ask_sz_05']
-        bid_sz = ['bid_sz_01', 'bid_sz_02', 'bid_sz_03', 'bid_sz_04', 'bid_sz_05']
-        ask_px = ['ask_px_01', 'ask_px_02', 'ask_px_03', 'ask_px_04', 'ask_px_05']
-        bid_px = ['bid_px_01', 'bid_px_02', 'bid_px_03', 'bid_px_04', 'bid_px_05']
+        
+        ask_sz = [f'ask_sz_{i:02}' for i in range(1, level+1)]
+        bid_sz = [f'bid_sz_{i:02}' for i in range(1, level+1)]
+        ask_px = [f'ask_px_{i:02}' for i in range(1, level+1)]
+        bid_px = [f'bid_px_{i:02}' for i in range(1, level+1)]
 
         # Create columns to store bOF and aOF
         for i in range(1, level + 1):
@@ -51,63 +51,65 @@ class OFI_implement:
         ## compute misprice
         data['midprice'] = (data['ask_px_01'] + data['bid_px_01']) / 2
 
-        ## comupte last_size
+        ## comupte size change in each time, for later agg operation, th sum of last_size before time t sould be equal to the size value at time t
         data['last_size'] = data['size'].diff().values
         data['last_size'][0] = data['size'][0]
 
         ## Integrated OFI, with PCA
         #freq = freq
-        data['event_count'] = 1
-        x = data.resample(freq
-                            ).agg({ 'action': 'last', 'side': 'last', 'depth': 'last', 
-                                    'price': 'last', 'midprice': 'last',
-                                    'last_size': 'sum',
+        data['event_num'] = 1
+        data_th = data.resample(freq).agg(
+            {'action': 'last', 
+             'side': 'last', 
+             'depth': 'last', 
+             'price': 'last', 
+             'midprice': 'last',
+             'last_size': 'sum',
+             'aOF1': 'sum', 'aOF2': 'sum', 'aOF3': 'sum', 'aOF4': 'sum', 'aOF5': 'sum',
+             'bOF1': 'sum', 'bOF2': 'sum', 'bOF3': 'sum', 'bOF4': 'sum', 'bOF5': 'sum',
 
-                                    'aOF1': 'sum', 'aOF2': 'sum', 'aOF3': 'sum', 'aOF4': 'sum', 'aOF5': 'sum',
-                                    'bOF1': 'sum', 'bOF2': 'sum', 'bOF3': 'sum', 'bOF4': 'sum', 'bOF5': 'sum',
+            'ask_sz_01': 'sum', 'ask_sz_02': 'sum', 'ask_sz_03': 'sum', 'ask_sz_04': 'sum', 'ask_sz_05': 'sum',
+            'bid_sz_01': 'sum', 'bid_sz_02': 'sum', 'bid_sz_03': 'sum', 'bid_sz_04': 'sum', 'bid_sz_05': 'sum',
 
-
-                                    'ask_sz_01': 'sum', 'ask_sz_02': 'sum', 'ask_sz_03': 'sum', 'ask_sz_04': 'sum', 'ask_sz_05': 'sum',
-                                    'bid_sz_01': 'sum', 'bid_sz_02': 'sum', 'bid_sz_03': 'sum', 'bid_sz_04': 'sum', 'bid_sz_05': 'sum',
-
-                                    'event_count': 'sum'
+            'event_num': 'sum', 'symbol': 'last', 'midprice': 'last'
                                     }).rename(columns={'last_size': 'size'})
 
         # x = x.loc[~(x == 0).all(axis=1)]
-        # x.dropna(inplace=True)
+        data_th.dropna(inplace=True)
+        data_th['returns'] = np.log(data_th['midprice']) - np.log(data_th['midprice'].shift(1))
+        data_th['midprice_delta'] = data_th['midprice'] - data_th['midprice'].shift(1)
 
-        x['returns'] = np.log(x['midprice']) - np.log(x['midprice'].shift(1))
-        x['midprice_delta'] = x['midprice'] - x['midprice'].shift(1)
+        ## Best-level OFI
+        for i in range(1, level + 1): data_th[f'OFI{i}'] = data_th[f'bOF{i}'] - data_th[f'aOF{i}']
 
+        ## Deeper-level OFI
+        M = level
+        Q = []
+        for i in range(1, level+1): Q.append((data_th[f'ask_sz_{i:02}'] + data_th[f'bid_sz_{i:02}']) / 2 / data_th['event_num'])
+        QM = sum(Q) / M
+        for i in range(1, level + 1): data_th[f'ofi{i}'] = data_th[f'OFI{i}'] / QM
 
-        x['OFI1'] = x['bOF1'] - x['aOF1']
-        x['OFI2'] = x['bOF2'] - x['aOF2']
-        x['OFI3'] = x['bOF3'] - x['aOF3']
-        x['OFI4'] = x['bOF4'] - x['aOF4']
-        x['OFI5'] = x['bOF5'] - x['aOF5']
+        ## Integrated OFI
+        # data_th = data_th.replace([np.inf, -np.inf], np.nan).dropna()
+        # X = data_th[[f'ofi{i}' for i in range(1, level+1)]]
+        # pca = PCA(n_components=1)
+        # X_pca = pca.fit_transform(X)
+        # ofiI = pd.Series(X_pca.flatten(), index=X.index)
+        # standard_scaler = StandardScaler()
+        # ofiI_standard = standard_scaler.fit_transform(np.array(ofiI).reshape(-1, 1))
+        # data_th['ofiI'] = pd.Series(ofiI_standard.flatten(), index=X.index)
 
-        M = 5
-        Q1 = (x['ask_sz_01'] + x['bid_sz_01']) / 2 / x['event_count']
-        Q2 = (x['ask_sz_02'] + x['bid_sz_02']) / 2 / x['event_count']
-        Q3 = (x['ask_sz_03'] + x['bid_sz_03']) / 2 / x['event_count']
-        Q4 = (x['ask_sz_04'] + x['bid_sz_04']) / 2 / x['event_count']
-        Q5 = (x['ask_sz_05'] + x['bid_sz_05']) / 2 / x['event_count']
-
-        Qm = (Q1 + Q2 + Q3 + Q4 + Q5) / M
-        x['ofi1'] = x['OFI1'] / Qm
-        x['ofi2'] = x['OFI2'] / Qm
-        x['ofi3'] = x['OFI3'] / Qm
-        x['ofi4'] = x['OFI4'] / Qm
-        x['ofi5'] = x['OFI5'] / Qm
-
-        # x.dropna(inplace=True)
-        x = x[~x.isin([np.nan, np.inf, -np.inf]).any(axis=1)]
-        X = x[['ofi1', 'ofi2', 'ofi3', 'ofi4', 'ofi5']]
-        pca = PCA(n_components=1)
-        X_pca = pca.fit_transform(X)
-        ofiI = pd.Series(X_pca.flatten(), index=X.index)
+        ## Integrated OFI
+        data_th = data_th.replace([np.inf, -np.inf], np.nan).dropna()
+        X = data_th[[f'ofi{i}' for i in range(1, level + 1)]]
+        X_standardized = (X - X.mean()) / X.std() 
+        pca = PCA(n_components=1)  
+        X_pca = pca.fit_transform(X_standardized)  
+        w1 = pca.components_[0]  
+        w1_normalized = w1 / np.sum(np.abs(w1))  
+        ofiI = np.dot(X, w1_normalized)  
         standard_scaler = StandardScaler()
         ofiI_standard = standard_scaler.fit_transform(np.array(ofiI).reshape(-1, 1))
-        x['ofiI'] = pd.Series(ofiI_standard.flatten(), index=X.index)
+        data_th['ofiI'] = pd.Series(ofiI_standard.flatten(), index=X.index)
 
-        return x, X_pca
+        return data_th, X_pca
