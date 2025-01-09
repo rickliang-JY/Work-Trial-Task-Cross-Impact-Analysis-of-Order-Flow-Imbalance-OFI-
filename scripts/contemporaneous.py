@@ -39,35 +39,6 @@ def PI(data, object, window_length='30min'):
     return results_df
 
 
-#Price impact of integrated OFIs
-# def PII(data, window_length='30min'):
-#     regression_results = []
-#     # get the data for each window
-#     grouped_data = data.resample(window_length)
-#     # run regression for each window
-#     for window_start, window_data in grouped_data:
-        
-#         if len(window_data) < 2:
-#             continue
-        
-#         X = window_data['ofiI']
-#         y = window_data['returns']
-#         X = sm.add_constant(X)
-
-#         model = sm.OLS(y, X).fit()
-
-#         # store the regression results
-#         regression_results.append({
-#             'window_start': window_start,
-#             'window_end': window_start + pd.Timedelta(window_length),
-#             'params': model.params,            # model parameters
-#             'r_squared': model.rsquared,       # R^2 value
-#             'p_values': model.pvalues,         # Pvalues
-#             'summary': model.summary().as_text()  # regression summary
-#         })
-
-#     results_df = pd.DataFrame(regression_results)
-#     return results_df
 
 
  ##Cross-impact of best-level OFI
@@ -118,46 +89,6 @@ def CI(data, object, stock_list,stock_name, window_length='30min'):
 
  ##Cross-impact of integrated OFIs
 
-# def CII(data, stock_list,stock_name, window_length='30min'):
-    # data = data[['returns', 'OFI1','symbol']]
-    # data = data.set_index('symbol', append = True).unstack(level='symbol')
-    # #since the number of event in one 
-    # #print(data.isnull().sum())
-    # data = data.fillna(0)
-    # regression_results = []
-    # # get the data for each window
-    # grouped_data = data.resample(window_length)
-    # # run regression for each window
-    # for window_start, window_data in grouped_data:
-        
-    #     if len(window_data) < 2:
-    #         continue
-    #     #window_data = window_data.set_index('symbol', append = True).unstack(level='symbol')
-    #     return_col = [f'returns_{i}' for i in stock_list]
-    #     ofiI_col = [f'ofiI_{i}' for i in stock_list]
-    #     window_data.columns = return_col + ofiI_col
-    #     ofiI_col_copy = ofiI_col.copy()
-    #     ofiI_col_copy.remove(f'ofiI_{stock_name}')
-
-    #     y = window_data[f'returns_{stock_name}']
-    #     X = window_data[ofiI_col_copy]
-        
-    #     X = sm.add_constant(X)
-
-    #     model = sm.OLS(y, X).fit()
-
-    #     # store the regression results
-    #     regression_results.append({
-    #         'window_start': window_start,
-    #         'window_end': window_start + pd.Timedelta(window_length),
-    #         'params': model.params,            # model parameters
-    #         'r_squared': model.rsquared,       # R^2 value
-    #         'p_values': model.pvalues,         # Pvalues
-    #         'summary': model.summary().as_text()  # regression summary
-    #     })
-
-    # results_df = pd.DataFrame(regression_results)
-    # return results_df
 
 
 
@@ -165,20 +96,45 @@ def CI(data, object, stock_list,stock_name, window_length='30min'):
 
 
 #%%Load data
-stock_list = ["AAPL","MSFT","NVDA","AMGN","GILD","TSLA","PEP","JPM", "V", "XOM"]
-datapool = {}
+time_range = ['20241230', '20241231', '20250102', '20250103', '20250106', '20250107']
+stock_list = ['JPM', 'TSLA', 'XOM', 'AMGN', 'AAPL']
 
-# Loop through each stock's data and store it in the data pool
-for stock_name in stock_list:
-    file_path = f'../data/{stock_name}20250102_after.csv'  # file path
-    data = pd.read_csv(file_path, index_col=0)            
-    data.index = pd.to_datetime(data.index)              
-    datapool[stock_name] = data
 
-# Get the OFI data for each stock
-for stock_name in stock_list:
-    data, X_pac = OFI_implement.ofi_implement(datapool[stock_name], 5, '1min')
-    datapool[stock_name] = data      
+alldata = {}
+
+for stock in stock_list:
+    combined_data = pd.DataFrame()  
+    for date in time_range:
+        
+        file_name = f"../data/{stock}{date}.csv"
+        try:
+           
+            chunks = pd.read_csv(file_name, chunksize=100000)
+            for chunk in chunks:
+                
+                chunk = chunk.drop(columns=['ts_recv', 'rtype', 'publisher_id', 'instrument_id', 'flags'], errors='ignore')
+                
+                chunk = chunk.drop(columns=[col for col in chunk.columns 
+                                             if any(char.isdigit() for char in col) 
+                                             and (int(''.join(filter(str.isdigit, col))) > 5 
+                                                  or int(''.join(filter(str.isdigit, col))) == 0)], errors='ignore')
+                
+                chunk.fillna(0, inplace=True)
+                chunk.set_index('ts_event', inplace=True)  
+                print(chunk.head())
+                chunk.index = pd.to_datetime(chunk.index) 
+                chunk, X_pac = OFI_implement.ofi_implement(chunk, 5, '1min')
+                
+                
+                combined_data = pd.concat([combined_data, chunk])
+        except Exception as e:
+            print(f"无法读取文件 {file_name}: {e}")
+    
+    
+    alldata[stock] = combined_data
+    print(combined_data.head(5))
+
+datapool = alldata.copy()  
 
 
 #%% PI and PII

@@ -227,20 +227,45 @@ def FCI(inputdata, stock_list, object, train_window = 30, test_window = 5, step_
 
 
 #%% Data Preparation
-stock_list = ["AAPL","MSFT","NVDA","AMGN","GILD","TSLA","PEP","JPM", "V", "XOM"]
-datapool = {}
-#
-# Loop through each stock's data and store it in the data pool
-for stock_name in stock_list:
-    
-    file_path = f'../data/{stock_name}20250102_after.csv'  # file path
-    data = pd.read_csv(file_path, index_col=0)            
-    data.index = pd.to_datetime(data.index)              
-    datapool[stock_name] = data  
+time_range = ['20241230', '20241231', '20250102', '20250103', '20250106', '20250107']
+stock_list = ['JPM', 'TSLA', 'XOM', 'AMGN', 'AAPL']
 
-for stock_name in stock_list:
-    data, X_pac = OFI_implement.ofi_implement(datapool[stock_name], 5, '1min')
-    datapool[stock_name] = data
+
+alldata = {}
+
+for stock in stock_list:
+    combined_data = pd.DataFrame()  
+    for date in time_range:
+        
+        file_name = f"../data/{stock}{date}.csv"
+        try:
+           
+            chunks = pd.read_csv(file_name, chunksize=100000)
+            for chunk in chunks:
+                
+                chunk = chunk.drop(columns=['ts_recv', 'rtype', 'publisher_id', 'instrument_id', 'flags'], errors='ignore')
+                
+                chunk = chunk.drop(columns=[col for col in chunk.columns 
+                                             if any(char.isdigit() for char in col) 
+                                             and (int(''.join(filter(str.isdigit, col))) > 5 
+                                                  or int(''.join(filter(str.isdigit, col))) == 0)], errors='ignore')
+                
+                chunk.fillna(0, inplace=True)
+                chunk.set_index('ts_event', inplace=True)  
+                print(chunk.head())
+                chunk.index = pd.to_datetime(chunk.index) 
+                chunk, X_pac = OFI_implement.ofi_implement(chunk, 5, '1min')
+                
+                
+                combined_data = pd.concat([combined_data, chunk])
+        except Exception as e:
+            print(f"无法读取文件 {file_name}: {e}")
+    
+    
+    alldata[stock] = combined_data
+    print(combined_data.head(5))
+
+datapool = alldata.copy()
 
 
 Lags = [1,2,3,5,10,20,30]
