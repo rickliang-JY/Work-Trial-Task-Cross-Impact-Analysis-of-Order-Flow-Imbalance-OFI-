@@ -130,7 +130,7 @@ for stock in stock_list:
         except Exception as e:
             print(f"无法读取文件 {file_name}: {e}")
     
-    
+    combined_data.to_csv(f"../results/{stock}_combined.csv")
     alldata[stock] = combined_data
     print(combined_data.head(5))
 
@@ -146,7 +146,8 @@ for stock_name in stock_list:
   result2 = PI(datapool[stock_name], 'ofiI',window_length='30min')
   PI_result[stock_name] = result1
   PII_result[stock_name] = result2
-
+PI_result.to_csv(f"../results/PI_result.csv")
+PII_result.to_csv(f"../results/PII_result.csv")
 #%% CI and CII
 combined_data = []
 for stock_name, data in datapool.items():
@@ -163,4 +164,7 @@ CII_result = {}
 for stock_name in stock_list:
   result = CI(combined_data, 'ofiI',stock_list, stock_name, window_length='30min')
   CII_result[stock_name] = result
+
+CI_result.to_csv(f"../results/CI_result.csv")
+CII_result.to_csv(f"../results/CII_result.csv")
 # %%
