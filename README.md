@@ -1,3 +1,26 @@
 # Work-Trial-Task-Cross-Impact-Analysis-of-Order-Flow-Imbalance-OFI-
 
-For this project
+python package: pandas  numpy statsmodels sklearn.linear_model  warnings
+I create a ofi.py file which implements the caculation method of OFI, plz import it as a package when you run the script
+
+Run the contemporaneous.py and future.py scripts you can get the refression results and the ofi data(stockname_combined.csv)
+
+There is no data prepossessing file and you can find that in each scripts, there are the input data to load the data. 
+
+Since the data file is quite large, I would show the example of original data file that may be used in this project
+
+dataname: AAPL20241230.csv
+
+| ts_recv                       | ts_event                      | rtype | publisher_id | instrument_id | action | side | depth | price   | size | flags | ts_in_delta | sequence | bid_px_00 | ask_px_00 | bid_sz_00 | ask_sz_00 | bid_ct_00 | ask_ct_00 | bid_px_01 | ask_px_01 | bid_sz_01 | ask_sz_01 | bid_ct_01 | ask_ct_01 | bid_px_02 | ask_px_02 | bid_sz_02 | ask_sz_02 | bid_ct_02 | ask_ct_02 | bid_px_03 | ask_px_03 | bid_sz_03 | ask_sz_03 | bid_ct_03 | ask_ct_03 | bid_px_04 | ask_px_04 | bid_sz_04 | ask_sz_04 | bid_ct_04 | ask_ct_04 | bid_px_05 | ask_px_05 | bid_sz_05 | ask_sz_05 | bid_ct_05 | ask_ct_05 | bid_px_06 | ask_px_06 | bid_sz_06 | ask_sz_06 | bid_ct_06 | ask_ct_06 | bid_px_07 | ask_px_07 | bid_sz_07 | ask_sz_07 | bid_ct_07 | ask_ct_07 | bid_px_08 | ask_px_08 | bid_sz_08 | ask_sz_08 | bid_ct_08 | ask_ct_08 | bid_px_09 | ask_px_09 | bid_sz_09 | ask_sz_09 | bid_ct_09 | ask_ct_09 | symbol |
+|-------------------------------|-------------------------------|-------|--------------|---------------|--------|------|-------|---------|------|-------|-------------|----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|
+| 2024-12-30T09:00:00.060876288Z | 2024-12-30T09:00:00.060706762Z | 10    | 2            | 38            | A      | N    | 0     | 217     | 100  | 130   | 169526      | 283662   | 217       |           | 100       | 0         | 1         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         | AAPL    |
+| 2024-12-30T09:00:00.106485754Z | 2024-12-30T09:00:00.106319269Z | 10    | 2            | 38            | A      | B    | 0     | 254.63  | 200  | 130   | 166485      | 284717   | 254.63    |           | 200       | 0         | 1         | 0         | 217       |           | 100       | 0         | 1         | 0         |           | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         | AAPL    |
+| 2024-12-30T09:00:00.106502299Z | 2024-12-30T09:00:00.106334601Z | 10    | 2            | 38            | A      | A    | 0     | 255     | 200  | 130   | 167698      | 284718   | 254.63    | 255       | 200       | 200       | 1         | 1         | 217       |           | 100       | 0         | 1         | 0         |           | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         | AAPL    |
+| 2024-12-30T09:00:00.108644697Z | 2024-12-30T09:00:00.108477551Z | 10    | 2            | 38            | C      | A    | 0     | 255     | 200  | 130   | 167146      | 284881   | 254.63    |           | 200       | 0         | 1         | 0         | 217       |           | 100       | 0         | 1         | 0         |           | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         |           | 0         | 0         | 0         | 0         | AAPL    |
+
+
+
+
+
+
+
